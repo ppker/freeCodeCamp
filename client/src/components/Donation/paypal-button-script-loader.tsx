@@ -1,12 +1,10 @@
-/* eslint-disable camelcase */
 import React, { Component } from 'react';
 import ReactDOM from 'react-dom';
 
 import { scriptLoader, scriptRemover } from '../../utils/script-loaders';
 
-import type { AddDonationData } from './paypal-button';
+import type { DonationApprovalData } from './types';
 
-/* eslint-disable @typescript-eslint/naming-convention */
 type PayPalButtonScriptLoaderProps = {
   isMinimalForm: boolean | undefined;
   clientId: string;
@@ -30,7 +28,7 @@ type PayPalButtonScriptLoaderProps = {
   ) => unknown;
   isSubscription: boolean;
   onApprove: (
-    data: AddDonationData,
+    data: DonationApprovalData,
     actions?: { order: { capture: () => Promise<unknown> } }
   ) => unknown;
   isPaypalLoading: boolean;
@@ -44,7 +42,6 @@ type PayPalButtonScriptLoaderProps = {
   };
   planId: string | null;
 };
-/* eslint-enable @typescript-eslint/naming-convention */
 
 type PayPalButtonScriptLoaderState = {
   isSdkLoaded: boolean;
@@ -66,7 +63,7 @@ declare global {
   }
 }
 
-export class PayPalButtonScriptLoader extends Component<
+export default class PayPalButtonScriptLoader extends Component<
   PayPalButtonScriptLoaderProps,
   PayPalButtonScriptLoaderState
 > {
@@ -114,7 +111,6 @@ export class PayPalButtonScriptLoader extends Component<
       prevProps.style.height !== this.props.style.height ||
       prevProps.isMinimalForm !== this.props.isMinimalForm
     ) {
-      // eslint-disable-next-line react/no-did-update-set-state
       this.setState({ isSdkLoaded: false });
       this.loadScript(this.state.isSubscription, true);
     }
@@ -154,7 +150,7 @@ export class PayPalButtonScriptLoader extends Component<
     });
   }
 
-  render(): JSX.Element {
+  render(): JSX.Element | null {
     const {
       isSdkLoaded,
       isSubscription
@@ -168,7 +164,7 @@ export class PayPalButtonScriptLoader extends Component<
       style
     } = this.props;
 
-    if (!isSdkLoaded) return <></>;
+    if (!isSdkLoaded) return null;
 
     // TODO: fill in the full list of props instead of any
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -188,7 +184,7 @@ export class PayPalButtonScriptLoader extends Component<
         onApprove={
           isSubscription
             ? (
-                data: AddDonationData,
+                data: DonationApprovalData,
                 actions: { order: { capture: () => Promise<unknown> } }
               ) => onApprove(data, actions)
             : (
@@ -206,7 +202,3 @@ export class PayPalButtonScriptLoader extends Component<
     );
   }
 }
-
-PayPalButtonScriptLoader.displayName = 'PayPalButtonScriptLoader';
-
-export default PayPalButtonScriptLoader;

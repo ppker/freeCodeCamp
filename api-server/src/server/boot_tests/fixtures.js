@@ -36,6 +36,68 @@ export const mockCompletedChallenge = {
   completedDate: Date.now()
 };
 
+export const mockCompletedChallengeNoFiles = {
+  id: '123abc456def',
+  challengeType: 0,
+  completedDate: Date.now()
+};
+
+export const mockFailingExamChallenge = {
+  id: '647e22d18acb466c97ccbef8',
+  challengeType: 17,
+  completedDate: Date.now(),
+  examResults: {
+    "numberOfCorrectAnswers" : 5,
+    "numberOfQuestionsInExam" : 10,
+    "percentCorrect" : 50,
+    "passingPercent" : 70,
+    "passed" : false,
+    "examTimeInSeconds" : 1200
+  }
+}
+
+export const mockPassingExamChallenge = {
+  id: '647e22d18acb466c97ccbef8',
+  challengeType: 17,
+  completedDate: 1538052380328,
+  examResults: {
+    "numberOfCorrectAnswers" : 9,
+    "numberOfQuestionsInExam" : 10,
+    "percentCorrect" : 90,
+    "passingPercent" : 70,
+    "passed" : true,
+    "examTimeInSeconds" : 1200
+  }
+}
+
+export const mockBetterPassingExamChallenge = {
+  id: '647e22d18acb466c97ccbef8',
+  challengeType: 17,
+  completedDate: Date.now(),
+  examResults: {
+    "numberOfCorrectAnswers" : 10,
+    "numberOfQuestionsInExam" : 10,
+    "percentCorrect" : 100,
+    "passingPercent" : 70,
+    "passed" : true,
+    "examTimeInSeconds" : 1200
+  }
+}
+
+export const mockWorsePassingExamChallenge = {
+  id: '647e22d18acb466c97ccbef8',
+  challengeType: 17,
+  completedDate: Date.now(),
+  examResults: {
+    "numberOfCorrectAnswers" : 8,
+    "numberOfQuestionsInExam" : 10,
+    "percentCorrect" : 80,
+    "passingPercent" : 70,
+    "passed" : true,
+    "examTimeInSeconds" : 1200
+  }
+}
+
 export const mockCompletedChallenges = [
   {
     id: 'bd7123c8c441eddfaeb5bdef',
@@ -51,9 +113,7 @@ export const mockCompletedChallenges = [
     completedDate: 1541678430790.0,
     files: [
       {
-        contents:
-          // eslint-disable-next-line max-len
-          "function palindrome(str) {\n  const clean = str.replace(/[\\W_]/g, '').toLowerCase()\n  const revStr = clean.split('').reverse().join('');\n  return clean === revStr;\n}\n\n\n\npalindrome(\"eye\");\n",
+        contents: "function palindrome(str) {\n  const clean = str.replace(/[\\W_]/g, '').toLowerCase()\n  const revStr = clean.split('').reverse().join('');\n  return clean === revStr;\n}\n\n\n\npalindrome(\"eye\");\n",
         ext: 'js',
         path: 'index.js',
         name: 'index',
@@ -89,6 +149,9 @@ export const mockUser = {
   },
   updateAttributes: updateUserAttr
 };
+
+export const mockUser2 = JSON.parse(JSON.stringify(mockUser));
+mockUser2.completedChallenges.push(mockPassingExamChallenge);
 
 const mockObservable = {
   toPromise: () => Promise.resolve('result')

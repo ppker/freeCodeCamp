@@ -1,7 +1,8 @@
-import { first, find } from 'lodash';
+import { find } from 'lodash';
 
 import {
   buildUserUpdate,
+  buildExamUserUpdate,
   buildChallengeUrl,
   createChallengeUrlResolver,
   createRedirectToCurrentChallenge,
@@ -15,9 +16,15 @@ import {
   mockAllChallenges,
   mockChallenge,
   mockUser,
+  mockUser2,
   mockGetFirstChallenge,
   mockCompletedChallenge,
-  mockCompletedChallenges
+  mockCompletedChallengeNoFiles,
+  mockCompletedChallenges,
+  mockFailingExamChallenge,
+  mockPassingExamChallenge,
+  mockBetterPassingExamChallenge,
+  mockWorsePassingExamChallenge
 } from './fixtures';
 
 export const mockReq = opts => {
@@ -47,10 +54,9 @@ describe('boot/challenge', () => {
         mockCompletedChallenge,
         'UTC'
       );
-      expect(result).toHaveProperty('updateData.$set.completedChallenges');
+      expect(result).toHaveProperty('updateData.$push.completedChallenges');
     });
 
-    // eslint-disable-next-line max-len
     it('preserves file contents if the completed challenge is a JS Project', () => {
       const jsChallengeId = 'aa2e6f85cab2ab736c9a9b24';
       const completedChallenge = {
@@ -64,11 +70,9 @@ describe('boot/challenge', () => {
         completedChallenge,
         'UTC'
       );
-      const firstCompletedChallenge = first(
-        result.updateData.$set.completedChallenges
-      );
+      const newCompletedChallenge = result.updateData.$push.completedChallenges;
 
-      expect(firstCompletedChallenge).toEqual(completedChallenge);
+      expect(newCompletedChallenge).toEqual(completedChallenge);
     });
 
     it('preserves the original completed date of a challenge', () => {
@@ -89,14 +93,14 @@ describe('boot/challenge', () => {
         'UTC'
       );
 
-      const firstCompletedChallenge = first(
-        result.updateData.$set.completedChallenges
-      );
+      const updatedCompletedChallenge =
+        result.updateData.$set['completedChallenges.2'];
 
-      expect(firstCompletedChallenge.completedDate).toEqual(originalCompletion);
+      expect(updatedCompletedChallenge.completedDate).toEqual(
+        originalCompletion
+      );
     });
 
-    // eslint-disable-next-line max-len
     it('does not attempt to update progressTimestamps for a previously completed challenge', () => {
       const completedChallengeId = 'aaa48de84e1ecc7c742e1124';
       const completedChallenge = {
@@ -116,7 +120,6 @@ describe('boot/challenge', () => {
       expect(hasProgressTimestamps).toBe(false);
     });
 
-    // eslint-disable-next-line max-len
     it('provides a progressTimestamps update for new challenge completion', () => {
       expect.assertions(2);
       const { updateData } = buildUserUpdate(
@@ -129,40 +132,84 @@ describe('boot/challenge', () => {
       expect(updateData.$push).toHaveProperty('progressTimestamps');
     });
 
-    it('removes repeat completions from the completedChallenges array', () => {
-      const completedChallengeId = 'aaa48de84e1ecc7c742e1124';
-      const completedChallenge = {
-        ...mockCompletedChallenge,
-        completedDate: Date.now(),
-        id: completedChallengeId
-      };
+    it('will $push newly completed challenges to the completedChallenges array', () => {
       const {
         updateData: {
-          $set: { completedChallenges }
+          $push: { completedChallenges }
         }
       } = buildUserUpdate(
         mockUser,
-        completedChallengeId,
-        completedChallenge,
+        '123abc',
+        mockCompletedChallengeNoFiles,
         'UTC'
       );
 
-      expect(completedChallenges.length).toEqual(
-        mockCompletedChallenges.length
-      );
+      expect(completedChallenges).toEqual(mockCompletedChallengeNoFiles);
     });
+  });
 
-    // eslint-disable-next-line max-len
-    it('adds newly completed challenges to the completedChallenges array', () => {
+  describe('buildExamUserUpdate', () => {
+    it('should $push exam results to completedExams[]', () => {
       const {
         updateData: {
-          $set: { completedChallenges }
+          $push: { completedExams }
         }
-      } = buildUserUpdate(mockUser, '123abc', mockCompletedChallenge, 'UTC');
+      } = buildExamUserUpdate(mockUser, mockFailingExamChallenge);
+      expect(completedExams).toEqual(mockFailingExamChallenge);
+    });
 
-      expect(completedChallenges.length).toEqual(
-        mockCompletedChallenges.length + 1
+    it('should not add failing exams to completedChallenges[]', () => {
+      const { alreadyCompleted, addPoint, updateData } = buildExamUserUpdate(
+        mockUser,
+        mockFailingExamChallenge
       );
+
+      expect(updateData).not.toHaveProperty('$push.completedChallenges');
+      expect(updateData).not.toHaveProperty('$set.completedChallenges');
+      expect(addPoint).toBe(false);
+      expect(alreadyCompleted).toBe(false);
+    });
+
+    it('should $push newly passed exams to completedChallenge[]', () => {
+      const {
+        alreadyCompleted,
+        addPoint,
+        updateData: {
+          $push: { completedChallenges }
+        }
+      } = buildExamUserUpdate(mockUser, mockPassingExamChallenge);
+
+      expect(completedChallenges).toEqual(mockPassingExamChallenge);
+      expect(addPoint).toBe(true);
+      expect(alreadyCompleted).toBe(false);
+    });
+
+    it('should not update passed exams with worse results in completedChallenge[]', () => {
+      const { alreadyCompleted, addPoint, updateData } = buildExamUserUpdate(
+        mockUser2,
+        mockWorsePassingExamChallenge
+      );
+
+      expect(updateData).not.toHaveProperty('$push.completedChallenges');
+      expect(updateData).not.toHaveProperty('$set.completedChallenges');
+      expect(addPoint).toBe(false);
+      expect(alreadyCompleted).toBe(true);
+    });
+
+    it('should update passed exams with better results in completedChallenge[]', () => {
+      const {
+        alreadyCompleted,
+        addPoint,
+        completedDate,
+        updateData: { $set }
+      } = buildExamUserUpdate(mockUser2, mockBetterPassingExamChallenge);
+
+      expect($set['completedChallenges.4'].examResults).toEqual(
+        mockBetterPassingExamChallenge.examResults
+      );
+      expect(addPoint).toBe(false);
+      expect(alreadyCompleted).toBe(true);
+      expect(completedDate).toBe(1538052380328);
     });
   });
 
@@ -188,7 +235,6 @@ describe('boot/challenge', () => {
       });
     }, 10000);
 
-    // eslint-disable-next-line max-len
     it('returns the first challenge url if the provided id does not relate to a challenge', async () => {
       const challengeUrlResolver = await createChallengeUrlResolver(
         mockAllChallenges,
@@ -353,7 +399,6 @@ describe('boot/challenge', () => {
       expect(res.redirect).toHaveBeenCalledWith(mockLearnUrl);
     });
 
-    // eslint-disable-next-line max-len
     it('redirects to the url provided by the challengeUrlResolver', async () => {
       const challengeUrlResolver = await createChallengeUrlResolver(
         mockAllChallenges,
@@ -377,7 +422,6 @@ describe('boot/challenge', () => {
       expect(res.redirect).toHaveBeenCalledWith(expectedUrl);
     });
 
-    // eslint-disable-next-line max-len
     it('redirects to the first challenge for users without a currentChallengeId', async () => {
       const challengeUrlResolver = await createChallengeUrlResolver(
         mockAllChallenges,

@@ -1,4 +1,4 @@
-import { Router } from '@reach/router';
+import { Router } from '@gatsbyjs/reach-router';
 import { withPrefix } from 'gatsby';
 import React from 'react';
 
@@ -16,9 +16,8 @@ function Certification(): JSX.Element {
         // @ts-ignore
         path={withPrefix('/certification/:username/:certSlug')}
       />
-      {/* eslint-disable-next-line @typescript-eslint/ban-ts-comment */}
-      {/* @ts-ignore */}
-      <RedirectHome default={true} />
+
+      <RedirectHome default />
     </Router>
   );
 }
